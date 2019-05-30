@@ -1,27 +1,25 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"flag"
 	"encoding/json"
-	"time"
+	"flag"
+	"fmt"
 	"log"
+	"net/http"
+	"time"
 )
 
 type SSLInfo struct {
-	Domain string `json:"domain"`
-	Issuer string `json:"issuer"`
-	ExpireDate string	`json:"expire_date"`
-	Remain int		`json:"days_remain"`
+	Domain     string `json:"domain"`
+	Issuer     string `json:"issuer"`
+	ExpireDate string `json:"expire_date"`
+	Remain     int    `json:"days_remain"`
 }
 
-func main() {
+func checkSSL(domain string) string {
 
-	var target_domain = flag.String("domain", "", "check target domain")
-	flag.Parse()
+	target_url := fmt.Sprintf("https://%s/", domain)
 
-	target_url := fmt.Sprintf("https://%s/", *target_domain)
 	resp, err := http.Get(target_url)
 	if err != nil {
 		log.Fatal(err)
@@ -30,15 +28,23 @@ func main() {
 	now := time.Now()
 	expireUTCTime := resp.TLS.PeerCertificates[0].NotAfter
 	expireDate := expireUTCTime.Format("2006/01/02 15:04")
-	day_remain := int(expireUTCTime.Sub(now).Hours()/24)
-	issuer := fmt.Sprintf("%s",resp.TLS.PeerCertificates[0].Issuer)
-	info := SSLInfo {
-		Domain: *target_domain,
+	day_remain := int(expireUTCTime.Sub(now).Hours() / 24)
+	issuer := fmt.Sprintf("%s", resp.TLS.PeerCertificates[0].Issuer)
+	info := SSLInfo{
+		Domain:     domain,
 		ExpireDate: expireDate,
-		Remain: day_remain, 
-		Issuer: issuer }
+		Remain:     day_remain,
+		Issuer:     issuer}
 	jsonByte, _ := json.Marshal(info)
 
-	fmt.Println(string(jsonByte))
+	return string(jsonByte)
+}
+
+func main() {
+
+	var target_domain = flag.String("domain", "", "check target domain")
+	flag.Parse()
+
+	fmt.Println(checkSSL(*target_domain))
 
 }
