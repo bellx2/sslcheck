@@ -16,13 +16,13 @@ type SSLInfo struct {
 	Remain     int    `json:"days_remain"`
 }
 
-func checkSSL(domain string) string {
+func checkSSL(domain string) (result string, err error) {
 
 	target_url := fmt.Sprintf("https://%s/", domain)
 
 	resp, err := http.Get(target_url)
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	now := time.Now()
@@ -35,9 +35,12 @@ func checkSSL(domain string) string {
 		ExpireDate: expireDate,
 		Remain:     day_remain,
 		Issuer:     issuer}
-	jsonByte, _ := json.Marshal(info)
+	jsonByte, err := json.Marshal(info)
+	if err != nil {
+		return "", err
+	}
 
-	return string(jsonByte)
+	return string(jsonByte), nil
 }
 
 func main() {
@@ -45,6 +48,10 @@ func main() {
 	var target_domain = flag.String("domain", "", "check target domain")
 	flag.Parse()
 
-	fmt.Println(checkSSL(*target_domain))
+	json, err := checkSSL(*target_domain)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(json)
 
 }
